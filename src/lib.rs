@@ -17,7 +17,7 @@ fn window() -> web_sys::Window {
 fn get_canvas() -> HtmlCanvasElement {
     let document = window().document().unwrap();
     let canvas = document.get_element_by_id("webgpu-canvas").unwrap();
-    let canvas: HtmlCanvasElement = canvas.dyn_into::<HtmlCanvasElement>().expect("Counldn't find canvas element");
+    let canvas: HtmlCanvasElement = canvas.dyn_into::<HtmlCanvasElement>().expect("Couldn't find canvas element");
     canvas
 }
 
@@ -46,7 +46,7 @@ pub async fn main_js() -> Result<(), JsValue> {
     //
     // The surface needs to live as long as the window that created it.
     // State owns the window so this should be safe.
-    let surface = unsafe { instance.create_surface(&window) }.unwrap();
+    let surface = unsafe { instance.create_surface(&window) }.expect("Couldn't acquire a surface");
 
     let adapter = instance.request_adapter(
         &wgpu::RequestAdapterOptions {
@@ -54,16 +54,16 @@ pub async fn main_js() -> Result<(), JsValue> {
             compatible_surface: Some(&surface),
             force_fallback_adapter: false,
         },
-    ).await.unwrap();
+    ).await.expect("Couldn't find an adapter");
 
     let (device, queue) = adapter.request_device(
         &wgpu::DeviceDescriptor {
             features: wgpu::Features::empty(),
-            limits: wgpu::Limits::downlevel_webgl2_defaults(), // should be wgpu::Limits::default()
+            limits: wgpu::Limits::default(),
             label: None,
         },
         None, // Trace path
-    ).await.unwrap();
+    ).await.expect("Couldn't acquire a device");
 
     let surface_caps = surface.get_capabilities(&adapter);
     // Shader code in this tutorial assumes an sRGB surface texture. Using a different
