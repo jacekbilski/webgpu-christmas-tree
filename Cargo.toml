@@ -1,6 +1,6 @@
 # You must change these to your own details.
 [package]
-name = "rust-webpack-template"
+name = "webgpu-christmas-tree"
 description = "WebGPU version of my Christmas Tree"
 version = "0.1.0"
 authors = ["Jacek Bilski <jacek@bilski.tech>"]
