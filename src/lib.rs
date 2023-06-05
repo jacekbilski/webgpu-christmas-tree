@@ -3,9 +3,11 @@ use wasm_bindgen::prelude::*;
 use web_sys::{console, HtmlCanvasElement};
 use wgpu::PresentMode;
 use winit::{
+    dpi::PhysicalSize,
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    window::{WindowBuilder},
+    platform::web::WindowBuilderExtWebSys,
+    window::{WindowBuilder, Window},
 };
 
 fn window() -> web_sys::Window {
@@ -26,10 +28,12 @@ pub async fn main_js() -> Result<(), JsValue> {
 
     let event_loop = EventLoop::new();
 
-    use winit::platform::web::WindowBuilderExtWebSys;
-    let window = WindowBuilder::new().with_canvas(Some(get_canvas())).build(&event_loop).unwrap();
+    let canvas = get_canvas();
+    // console::log_1(&JsValue::from_str(format!("Found canvas, height: {}, width: {}", canvas.height(), canvas.width()).as_str()));
+    let window: Window = WindowBuilder::new().with_canvas(Some(canvas)).build(&event_loop).unwrap();
 
-    let size = window.inner_size();
+    let size = PhysicalSize::new(1280, 720);
+    window.set_inner_size(size);
 
     // The instance is a handle to our GPU
     // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
@@ -133,4 +137,5 @@ pub async fn main_js() -> Result<(), JsValue> {
         },
         _ => {}
     });
+    // Ok(())
 }
