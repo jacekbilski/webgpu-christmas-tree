@@ -59,7 +59,7 @@ pub async fn main_js() -> Result<(), JsValue> {
     let (device, queue) = adapter.request_device(
         &wgpu::DeviceDescriptor {
             features: wgpu::Features::empty(),
-            limits: wgpu::Limits::default(),
+            limits: wgpu::Limits::downlevel_webgl2_defaults(), // should be wgpu::Limits::default()
             label: None,
         },
         None, // Trace path
