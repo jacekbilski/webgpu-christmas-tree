@@ -1,6 +1,7 @@
 extern crate console_error_panic_hook;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, HtmlCanvasElement};
+use wgpu::PresentMode;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -34,7 +35,7 @@ pub async fn main_js() -> Result<(), JsValue> {
     // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
-        dx12_shader_compiler: Default::default(),
+        ..Default::default()
     });
 
     // # Safety
@@ -73,7 +74,7 @@ pub async fn main_js() -> Result<(), JsValue> {
         format: surface_format,
         width: size.width,
         height: size.height,
-        present_mode: surface_caps.present_modes[0],    // PresentMode::Fifo or AutoVSync
+        present_mode: PresentMode::AutoVsync,
         alpha_mode: surface_caps.alpha_modes[0],
         view_formats: vec![],
     };
@@ -98,6 +99,37 @@ pub async fn main_js() -> Result<(), JsValue> {
                 ..
             } => *control_flow = ControlFlow::Exit,
             _ => {}
+        },
+        Event::RedrawRequested(_) => {
+            let output = surface.get_current_texture().unwrap();
+            let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
+
+            {
+                let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Render Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color {
+                                r: 0.1, // Pick any color you want here
+                                g: 0.9,
+                                b: 0.3,
+                                a: 1.0,
+                            }),
+                            store: true,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                });
+            }
+
+            // submit will accept anything that implements IntoIter
+            queue.submit(std::iter::once(encoder.finish()));
+            output.present();
         },
         _ => {}
     });
