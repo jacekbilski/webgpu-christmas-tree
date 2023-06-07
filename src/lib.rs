@@ -2,6 +2,7 @@ extern crate console_error_panic_hook;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, HtmlCanvasElement};
 use wgpu::PresentMode;
+use wgpu::util::DeviceExt;
 use winit::{
     dpi::PhysicalSize,
     event::*,
@@ -20,6 +21,32 @@ fn get_canvas() -> HtmlCanvasElement {
     let canvas: HtmlCanvasElement = canvas.dyn_into::<HtmlCanvasElement>().expect("Couldn't find canvas element");
     canvas
 }
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: [f32; 3],
+    color: [f32; 3],
+}
+
+impl Vertex {
+    const ATTRIBS: [wgpu::VertexAttribute; 2] =
+        wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3];
+
+    fn desc() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &Self::ATTRIBS,
+        }
+    }
+}
+
+const VERTICES: &[Vertex] = &[
+    Vertex { position: [0.0, 0.5, 0.0], color: [1.0, 0.0, 0.0] },
+    Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
+    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
+];
 
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
@@ -98,22 +125,22 @@ pub async fn main_js() -> Result<(), JsValue> {
         layout: Some(&render_pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
-            entry_point: "vs_main", // 1.
-            buffers: &[], // 2.
+            entry_point: "vs_main",
+            buffers: &[Vertex::desc()],
         },
-        fragment: Some(wgpu::FragmentState { // 3.
+        fragment: Some(wgpu::FragmentState {
             module: &shader,
             entry_point: "fs_main",
-            targets: &[Some(wgpu::ColorTargetState { // 4.
+            targets: &[Some(wgpu::ColorTargetState {
                 format: config.format,
                 blend: Some(wgpu::BlendState::REPLACE),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
         }),
         primitive: wgpu::PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleList, // 1.
+            topology: wgpu::PrimitiveTopology::TriangleList,
             strip_index_format: None,
-            front_face: wgpu::FrontFace::Ccw, // 2.
+            front_face: wgpu::FrontFace::Ccw,
             cull_mode: Some(wgpu::Face::Back),
             // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
             polygon_mode: wgpu::PolygonMode::Fill,
@@ -126,10 +153,18 @@ pub async fn main_js() -> Result<(), JsValue> {
         multisample: wgpu::MultisampleState {
             count: 1, // 2.
             mask: !0, // 3.
-            alpha_to_coverage_enabled: false, // 4.
+            alpha_to_coverage_enabled: false,
         },
-        multiview: None, // 5.
+        multiview: None,
     });
+
+    let vertex_buffer = device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        }
+    );
 
     // Your code goes here!
     console::log_1(&JsValue::from_str("Hello world!"));
@@ -176,8 +211,9 @@ pub async fn main_js() -> Result<(), JsValue> {
                     })],
                     depth_stencil_attachment: None,
                 });
-                render_pass.set_pipeline(&render_pipeline); // 2.
-                render_pass.draw(0..3, 0..1); // 3.
+                render_pass.set_pipeline(&render_pipeline);
+                render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                render_pass.draw(0..VERTICES.len() as u32, 0..1);
             }
 
             // submit will accept anything that implements IntoIter
