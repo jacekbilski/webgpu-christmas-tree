@@ -48,6 +48,10 @@ const VERTICES: &[Vertex] = &[
     Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
 ];
 
+const INDICES: &[u16] = &[
+    0, 1, 2,
+];
+
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
 pub async fn main_js() -> Result<(), JsValue> {
@@ -166,6 +170,14 @@ pub async fn main_js() -> Result<(), JsValue> {
         }
     );
 
+    let index_buffer = device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(INDICES),
+            usage: wgpu::BufferUsages::INDEX,
+        }
+    );
+
     // Your code goes here!
     console::log_1(&JsValue::from_str("Hello world!"));
 
@@ -213,7 +225,8 @@ pub async fn main_js() -> Result<(), JsValue> {
                 });
                 render_pass.set_pipeline(&render_pipeline);
                 render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-                render_pass.draw(0..VERTICES.len() as u32, 0..1);
+                render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
             }
 
             // submit will accept anything that implements IntoIter
