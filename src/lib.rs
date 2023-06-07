@@ -2,7 +2,7 @@ extern crate console_error_panic_hook;
 
 use cgmath::{Point3, Vector3};
 use wasm_bindgen::prelude::*;
-use web_sys::{console, HtmlCanvasElement};
+use web_sys::HtmlCanvasElement;
 use wgpu::PresentMode;
 use wgpu::util::DeviceExt;
 use winit::{
@@ -282,9 +282,6 @@ pub async fn main_js() -> Result<(), JsValue> {
             usage: wgpu::BufferUsages::INDEX,
         }
     );
-
-    // Your code goes here!
-    console::log_1(&JsValue::from_str("Hello world!"));
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
