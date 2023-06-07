@@ -27,6 +27,7 @@ wgpu = { version = "0.16.1", features = [ "webgl" ] }
 console_error_panic_hook = "0.1.7"
 wasm-bindgen-futures = "0.4.36"
 bytemuck = { version = "1.13.1", features = [ "derive" ] }
+cgmath = "0.18.0"
 
 # The `web-sys` crate allows you to interact with the various browser APIs,
 # like the DOM.

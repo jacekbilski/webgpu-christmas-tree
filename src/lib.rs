@@ -1,4 +1,6 @@
 extern crate console_error_panic_hook;
+
+use cgmath::{Point3, Vector3};
 use wasm_bindgen::prelude::*;
 use web_sys::{console, HtmlCanvasElement};
 use wgpu::PresentMode;
@@ -20,6 +22,62 @@ fn get_canvas() -> HtmlCanvasElement {
     let canvas = document.get_element_by_id("webgpu-canvas").unwrap();
     let canvas: HtmlCanvasElement = canvas.dyn_into::<HtmlCanvasElement>().expect("Couldn't find canvas element");
     canvas
+}
+
+struct Camera {
+    eye: Point3<f32>,
+    target: Point3<f32>,
+    up: Vector3<f32>,
+    aspect: f32,
+    fovy: f32,
+    znear: f32,
+    zfar: f32,
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Camera {
+            eye: (0.0, 1.0, 1.5).into(),
+            target: (0.0, 0.0, 0.0).into(),
+            up: Vector3::unit_y(),
+            aspect: 16.0 / 9.0,
+            fovy: 45.0,
+            znear: 0.1,
+            zfar: 100.0,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct CameraUniform {
+    // We can't use cgmath with bytemuck directly so we'll have
+    // to convert the Matrix4 into a 4x4 f32 array
+    view_proj: [[f32; 4]; 4],
+}
+
+impl CameraUniform {
+    #[rustfmt::skip]
+    const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 0.5, 0.0,
+        0.0, 0.0, 0.5, 1.0,
+    );
+
+    fn new() -> Self {
+        use cgmath::SquareMatrix;
+        Self {
+            view_proj: cgmath::Matrix4::identity().into(),
+        }
+    }
+
+    fn update_view_proj(&mut self, camera: &Camera) {
+        let view = cgmath::Matrix4::look_at_rh(camera.eye, camera.target, camera.up);
+        let proj = cgmath::perspective(cgmath::Deg(camera.fovy), camera.aspect, camera.znear, camera.zfar);
+
+        self.view_proj = (CameraUniform::OPENGL_TO_WGPU_MATRIX * proj * view).into();
+    }
 }
 
 #[repr(C)]
@@ -117,12 +175,57 @@ pub async fn main_js() -> Result<(), JsValue> {
     };
     surface.configure(&device, &config);
 
+    let camera = Camera {
+        aspect: size.width as f32 / size.height as f32,
+        ..Default::default()
+    };
+
+    let mut camera_uniform = CameraUniform::new();
+    camera_uniform.update_view_proj(&camera);
+
+    let camera_buffer = device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("Camera Buffer"),
+            contents: bytemuck::cast_slice(&[camera_uniform]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        }
+    );
+
+    let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }
+        ],
+        label: Some("camera_bind_group_layout"),
+    });
+
+    let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &camera_bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }
+        ],
+        label: Some("camera_bind_group"),
+    });
+
     let shader = device.create_shader_module(wgpu::include_wgsl!("shaders/shader.wgsl"));
 
     let render_pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[
+                &camera_bind_group_layout,
+            ],
             push_constant_ranges: &[],
         });
 
@@ -226,6 +329,7 @@ pub async fn main_js() -> Result<(), JsValue> {
                     depth_stencil_attachment: None,
                 });
                 render_pass.set_pipeline(&render_pipeline);
+                render_pass.set_bind_group(0, &camera_bind_group, &[]);
                 render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
                 render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                 render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
