@@ -1,12 +1,14 @@
 extern crate console_error_panic_hook;
 
+use std::f32::consts::FRAC_PI_8;
+
 use wasm_bindgen::prelude::*;
-use web_sys::HtmlCanvasElement;
+use web_sys::{console, HtmlCanvasElement};
 use wgpu::util::DeviceExt;
 use winit::{
     dpi::PhysicalSize,
     event::*,
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::EventLoop,
     platform::web::WindowBuilderExtWebSys,
     window::{WindowBuilder, Window},
 };
@@ -21,8 +23,7 @@ fn window() -> web_sys::Window {
 fn get_canvas() -> HtmlCanvasElement {
     let document = window().document().unwrap();
     let canvas = document.get_element_by_id("webgpu-canvas").unwrap();
-    let canvas: HtmlCanvasElement = canvas.dyn_into::<HtmlCanvasElement>().expect("Couldn't find canvas element");
-    canvas
+    canvas.dyn_into::<HtmlCanvasElement>().expect("Couldn't find canvas element")
 }
 
 const VERTICES: &[Vertex] = &[
@@ -69,23 +70,31 @@ pub async fn main_js() -> Result<(), JsValue> {
         }
     );
 
-    event_loop.run(move |event, _, control_flow| match event {
+    let mut mouse_rotating = false;
+    event_loop.run(move |event, _, _| match event {
+        Event::DeviceEvent {
+            event: DeviceEvent::MouseMotion { delta: (x_diff, y_diff), },
+            ..
+        } => {
+            if mouse_rotating {
+                let angle_change = FRAC_PI_8 / 128.;
+                console::log_1(&JsValue::from_str(format!("Rotating camera horizontally by {:?} rad", -angle_change * x_diff as f32).as_str()));
+                console::log_1(&JsValue::from_str(format!("Rotating camera vertically by {:?} rad", angle_change * y_diff as f32).as_str()));
+                // scene.rotate_camera_horizontally(-angle_change * x_diff as f32, &mut vulkan);
+                // scene.rotate_camera_vertically(angle_change * y_diff as f32, &mut vulkan);
+            }
+        }
         Event::WindowEvent {
-            ref event,
-            window_id,
-        } if window_id == window.id() => match event {
-            WindowEvent::CloseRequested
-            | WindowEvent::KeyboardInput {
-                input:
-                KeyboardInput {
-                    state: ElementState::Pressed,
-                    virtual_keycode: Some(VirtualKeyCode::Escape),
-                    ..
-                },
+            event:
+            WindowEvent::MouseInput {
+                button: MouseButton::Left,
+                state,
                 ..
-            } => *control_flow = ControlFlow::Exit,
-            _ => {}
-        },
+            },
+            ..
+        } => {
+            mouse_rotating = state == ElementState::Pressed;
+        }
         Event::RedrawRequested(_) => {
             let output = web_gpu.surface.get_current_texture().unwrap();
             let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -121,7 +130,7 @@ pub async fn main_js() -> Result<(), JsValue> {
             // submit will accept anything that implements IntoIter
             web_gpu.queue.submit(std::iter::once(encoder.finish()));
             output.present();
-        },
+        }
         _ => {}
     });
     // Ok(())
