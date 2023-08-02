@@ -10,7 +10,7 @@ use winit::{
     event::*,
     event_loop::EventLoop,
     platform::web::WindowBuilderExtWebSys,
-    window::{WindowBuilder, Window},
+    window::WindowBuilder,
 };
 use crate::gfx::{Vertex, WebGPU};
 
@@ -48,7 +48,7 @@ pub async fn main_js() -> Result<(), JsValue> {
     let canvas = get_canvas();
     // console::log_1(&JsValue::from_str(format!("Found canvas, width: {}, height: {}", canvas.client_width(), canvas.client_height()).as_str()));
     let size = PhysicalSize::new(canvas.client_width(), canvas.client_height());
-    let window: Window = WindowBuilder::new().with_canvas(Some(canvas)).build(&event_loop).unwrap();
+    let window = WindowBuilder::new().with_canvas(Some(canvas)).build(&event_loop).unwrap();
 
     window.set_inner_size(size);
     // console::log_1(&JsValue::from_str(format!("Window size, width: {}, height: {}", size.width, size.height).as_str()));
