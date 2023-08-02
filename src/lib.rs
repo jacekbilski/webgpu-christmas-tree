@@ -46,11 +46,12 @@ pub async fn main_js() -> Result<(), JsValue> {
     let event_loop = EventLoop::new();
 
     let canvas = get_canvas();
-    // console::log_1(&JsValue::from_str(format!("Found canvas, height: {}, width: {}", canvas.height(), canvas.width()).as_str()));
+    // console::log_1(&JsValue::from_str(format!("Found canvas, width: {}, height: {}", canvas.client_width(), canvas.client_height()).as_str()));
+    let size = PhysicalSize::new(canvas.client_width(), canvas.client_height());
     let window: Window = WindowBuilder::new().with_canvas(Some(canvas)).build(&event_loop).unwrap();
 
-    let size = PhysicalSize::new(1280, 720);
     window.set_inner_size(size);
+    // console::log_1(&JsValue::from_str(format!("Window size, width: {}, height: {}", size.width, size.height).as_str()));
 
     let web_gpu = WebGPU::new(&window).await;
 
