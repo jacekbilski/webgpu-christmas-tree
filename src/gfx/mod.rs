@@ -1,5 +1,4 @@
 use cgmath::{Point3, Vector3};
-use wgpu::{BindGroup, Device, Instance, PresentMode, Queue, RenderPipeline, Surface};
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
@@ -80,16 +79,16 @@ impl Vertex {
 }
 
 pub(crate) struct ApplicationState {
-    pub device: Device,
-    pub surface: Surface,
-    pub render_pipeline: RenderPipeline,
-    pub camera_bind_group: BindGroup,
-    pub queue: Queue,
+    pub device: wgpu::Device,
+    pub surface: wgpu::Surface,
+    pub render_pipeline: wgpu::RenderPipeline,
+    pub camera_bind_group: wgpu::BindGroup,
+    pub queue: wgpu::Queue,
 }
 
 impl ApplicationState {
     pub async fn new(window: &Window) -> Self {
-        let instance = Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::GL,
             ..Default::default()
         });
@@ -126,7 +125,7 @@ impl ApplicationState {
             format: surface_format,
             width: window.inner_size().width,
             height: window.inner_size().height,
-            present_mode: PresentMode::AutoVsync,
+            present_mode: wgpu::PresentMode::AutoVsync,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
         };
