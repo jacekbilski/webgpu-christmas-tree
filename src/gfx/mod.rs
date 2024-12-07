@@ -120,7 +120,7 @@ impl ApplicationState {
             .copied()
             .find(|f| f.is_srgb())
             .unwrap_or(surface_caps.formats[0]);
-        let config = wgpu::SurfaceConfiguration {
+        let surface_configuration = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
             width: window.inner_size().width,
@@ -129,7 +129,7 @@ impl ApplicationState {
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
         };
-        surface.configure(&device, &config);
+        surface.configure(&device, &surface_configuration);
 
         let camera = Camera {
             aspect: window.inner_size().width as f32 / window.inner_size().height as f32,
@@ -197,7 +197,7 @@ impl ApplicationState {
                 module: &shader,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
+                    format: surface_configuration.format,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
