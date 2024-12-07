@@ -88,17 +88,11 @@ pub(crate) struct ApplicationState {
 
 impl ApplicationState {
     pub async fn new(window: &winit::window::Window) -> Self {
-        // The instance is a handle to our GPU
-        // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
+            backends: wgpu::Backends::GL,
             ..Default::default()
         });
 
-        // # Safety
-        //
-        // The surface needs to live as long as the window that created it.
-        // State owns the window so this should be safe.
         let surface = unsafe { instance.create_surface(&window) }.expect("Couldn't acquire a surface");
 
         let adapter = instance.request_adapter(
@@ -112,7 +106,7 @@ impl ApplicationState {
         let (device, queue) = adapter.request_device(
             &wgpu::DeviceDescriptor {
                 features: wgpu::Features::empty(),
-                limits: wgpu::Limits::downlevel_webgl2_defaults(), // should be wgpu::Limits::default()
+                limits: wgpu::Limits::downlevel_webgl2_defaults(), // switch to wgpu::Limits::default() once Firefox will support WebGPU
                 label: None,
             },
             None, // Trace path
