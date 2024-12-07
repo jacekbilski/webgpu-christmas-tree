@@ -81,6 +81,7 @@ impl Vertex {
 pub(crate) struct ApplicationState {
     pub device: wgpu::Device,
     pub surface: wgpu::Surface,
+    pub surface_configuration: wgpu::SurfaceConfiguration,
     pub render_pipeline: wgpu::RenderPipeline,
     pub camera_bind_group: wgpu::BindGroup,
     pub queue: wgpu::Queue,
@@ -226,6 +227,7 @@ impl ApplicationState {
         Self {
             device,
             surface,
+            surface_configuration,
             render_pipeline,
             camera_bind_group,
             queue,
