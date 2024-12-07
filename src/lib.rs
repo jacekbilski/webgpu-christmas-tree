@@ -12,7 +12,7 @@ use winit::{
     platform::web::WindowBuilderExtWebSys,
     window::WindowBuilder,
 };
-use crate::gfx::{Vertex, WebGPU};
+use crate::gfx::{Vertex, ApplicationState};
 
 mod gfx;
 
@@ -56,9 +56,9 @@ pub async fn main_js() -> Result<(), JsValue> {
 
     // console::log_1(&JsValue::from_str(format!("Window size, width: {}, height: {}", size.width, size.height).as_str()));
 
-    let web_gpu = WebGPU::new(&window).await;
+    let state = ApplicationState::new(&window).await;
 
-    let vertex_buffer = web_gpu.device.create_buffer_init(
+    let vertex_buffer = state.device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(VERTICES),
@@ -66,7 +66,7 @@ pub async fn main_js() -> Result<(), JsValue> {
         }
     );
 
-    let index_buffer = web_gpu.device.create_buffer_init(
+    let index_buffer = state.device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
             contents: bytemuck::cast_slice(INDICES),
@@ -104,9 +104,9 @@ pub async fn main_js() -> Result<(), JsValue> {
             }
         }
         Event::RedrawRequested(_) => {
-            let output = web_gpu.surface.get_current_texture().unwrap();
+            let output = state.surface.get_current_texture().unwrap();
             let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-            let mut encoder = web_gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            let mut encoder = state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Render Encoder"),
             });
 
@@ -128,15 +128,15 @@ pub async fn main_js() -> Result<(), JsValue> {
                     })],
                     depth_stencil_attachment: None,
                 });
-                render_pass.set_pipeline(&web_gpu.render_pipeline);
-                render_pass.set_bind_group(0, &web_gpu.camera_bind_group, &[]);
+                render_pass.set_pipeline(&state.render_pipeline);
+                render_pass.set_bind_group(0, &state.camera_bind_group, &[]);
                 render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
                 render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                 render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
             }
 
             // submit will accept anything that implements IntoIter
-            web_gpu.queue.submit(std::iter::once(encoder.finish()));
+            state.queue.submit(std::iter::once(encoder.finish()));
             output.present();
         }
         _ => {}

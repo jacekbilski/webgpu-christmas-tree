@@ -78,7 +78,7 @@ impl Vertex {
     }
 }
 
-pub(crate) struct WebGPU {
+pub(crate) struct ApplicationState {
     pub device: Device,
     pub surface: Surface,
     pub render_pipeline: RenderPipeline,
@@ -86,7 +86,7 @@ pub(crate) struct WebGPU {
     pub queue: Queue,
 }
 
-impl WebGPU {
+impl ApplicationState {
     pub async fn new(window: &winit::window::Window) -> Self {
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
