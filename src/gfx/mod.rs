@@ -1,6 +1,7 @@
 use cgmath::{Point3, Vector3};
 use wgpu::{BindGroup, Device, Instance, PresentMode, Queue, RenderPipeline, Surface};
 use wgpu::util::DeviceExt;
+use winit::window::Window;
 
 struct Camera {
     eye: Point3<f32>,
@@ -87,7 +88,7 @@ pub(crate) struct ApplicationState {
 }
 
 impl ApplicationState {
-    pub async fn new(window: &winit::window::Window) -> Self {
+    pub async fn new(window: &Window) -> Self {
         let instance = Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::GL,
             ..Default::default()
@@ -214,10 +215,10 @@ impl ApplicationState {
                 // Requires Features::CONSERVATIVE_RASTERIZATION
                 conservative: false,
             },
-            depth_stencil: None, // 1.
+            depth_stencil: None,
             multisample: wgpu::MultisampleState {
-                count: 1, // 2.
-                mask: !0, // 3.
+                count: 1,
+                mask: !0,
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
