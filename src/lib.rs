@@ -89,15 +89,19 @@ pub async fn main_js() -> Result<(), JsValue> {
             }
         }
         Event::WindowEvent {
-            event:
-            WindowEvent::MouseInput {
-                button: MouseButton::Left,
-                state,
-                ..
-            },
+            event,
             ..
         } => {
-            mouse_rotating = state == ElementState::Pressed;
+            match event {
+                WindowEvent::MouseInput {
+                    button: MouseButton::Left,
+                    state,
+                    ..
+                } => {
+                    mouse_rotating = state == ElementState::Pressed;
+                }
+                _ => {}
+            }
         }
         Event::RedrawRequested(_) => {
             let output = web_gpu.surface.get_current_texture().unwrap();
